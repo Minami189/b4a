@@ -18,8 +18,8 @@ async function getAccount(req){
   const {email} = req.query;
   console.log(`Email takla: ${email}`);
   try {
-    const { user } = await pool.query("SELECT * FROM users WHERE email = $1",[email]);
-    return user;
+    const { rows } = await pool.query("SELECT * FROM users WHERE email = $1",[email]);
+    return rows;
   } catch (error) {
     throw new Error("Database fetch error: " + error.message);
   }
