@@ -38,6 +38,13 @@ async function insertRecord( firstname, lastname, middlename, age, email, passwo
   }
 };
 
+// Get grades of a student
+async function getGrades(req){
+  const {userID} = req.query;
+  const {rows} = await pool.query("SELECT Grades.Grade, Subjects.Description, Subjects.Code, Subjects.LEC, Subjects.LAB FROM Grades JOIN Subjects ON Grades.SubjectID = Subjects.ID WHERE UserID = $1 ", [userID])
+  return rows[0];
+}
+
 // Route to fetch all records
 app.get("/login", async (req, res) => {
   try {
@@ -47,6 +54,17 @@ app.get("/login", async (req, res) => {
     console.error(error.message);
     res.status(500).json({ error: "Database error" });
   }
+});
+
+// Route to fetch Subjects
+app.get("/grades", async (req, res) => {
+  try{
+    const data = await getGrades(req);
+    res.send(data);
+  }catch(error){
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  } 
 });
 
 // Route to insert a new record
