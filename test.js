@@ -41,7 +41,7 @@ async function insertRecord( firstname, lastname, middlename, age, email, passwo
 // Get grades of a student
 async function getGrades(req){
   const {userID} = req.query;
-  const {rows} = await pool.query(`SELECT "Grades"."Grade", "Subjects"."Description", "Subjects"."Code", "Subjects"."LEC", "Subjects"."LAB" FROM public."Grades" JOIN public."Subjects" ON public."Subjects".ID = public."Grades"."SubjectID" WHERE public."Grades"."UserID" = 8; `, [userID])
+  const {rows} = await pool.query(`SELECT "Subjects"."Year", "Subjects"."Semester", "Subjects"."Description", "Subjects"."Code", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB" FROM public."Grades" JOIN public."Subjects" ON public."Subjects".ID = public."Grades"."SubjectID" WHERE public."Grades"."UserID" = $1`, [userID])
   return rows[0];
 }
 
