@@ -7,17 +7,18 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// PostgreSQL Pool (Connect to Supabase)
 const pool = new Pool({
-  connectionString: process.env.SUPABASE_DB_URL, // Secure in .env
-  ssl: { rejectUnauthorized: false }, // Required for Supabase
+  connectionString: process.env.SUPABASE_DB_URL, 
+  ssl: { rejectUnauthorized: false }, 
 });
 
-// Fetch all records
-async function getAllRecords(){
+
+// Login
+async function getAccount(req){
+  const {email} = req.query;
   try {
-    const { rows } = await pool.query("SELECT * FROM users");
-    return rows;
+    const { user } = await pool.query("SELECT * FROM users WHERE email = $1",[email]);
+    return user;
   } catch (error) {
     throw new Error("Database fetch error: " + error.message);
   }
@@ -37,10 +38,9 @@ async function insertRecord( firstname, lastname, middlename, age, email, passwo
 };
 
 // Route to fetch all records
-app.get("/test", async (req, res) => {
+app.get("/login", async (req, res) => {
   try {
-    const data = await getAllRecords();
-    console.log(data)
+    const data = await getAccount(req);
     res.json(data);
   } catch (error) {
     console.error(error.message);
