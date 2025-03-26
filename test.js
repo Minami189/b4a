@@ -25,24 +25,22 @@ async function getAccount(req){
   }
 };
 
-// Insert data
-async function insertRecord( firstname, lastname, middlename, age, email, password){
-  try {
-    const { rows } = await pool.query(
-      "INSERT INTO users (firstname, lastname, middlename, age, email, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
-      [ firstname, lastname, middlename, age, email, password]
-    );
-    return rows[0]; 
-  } catch (error) {
-    throw new Error("Database insert error: " + error.message);
-  }
-};
 
 // Get grades of a student
 async function getGrades(req){
   const {userID} = req.query;
-  const {rows} = await pool.query(`SELECT "Subjects"."Year", "Subjects"."Semester", "Subjects"."Description", "Subjects"."Code", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB" FROM public."Grades" JOIN public."Subjects" ON public."Subjects".ID = public."Grades"."SubjectID" WHERE public."Grades"."UserID" = $1`, [userID])
+  const {rows} = await pool.query(`SELECT "Subjects"."Year", "Subjects"."Semester", "Subjects"."Code", "Subjects"."Description", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB"
+  FROM "Grades" JOIN "Subjects" ON "Subjects"."id" = "Grades"."SubjectID" 
+  JOIN student ON student.id = "Grades"."studentID" WHERE student."uID" = $1`, [userID])
   return rows[0];
+}
+
+// Get subjects of a course
+async function getSubjects(req){
+  const {userID} = req.query;
+  const {rows} = await pool.query(`SELECT "Subjects"."Code", "Subjects"."Description", "Subjects"."Year", "Subjects"."Semester", "Subjects"."LEC", "Subjects"."LAB"
+FROM "Subjects" JOIN "student" ON "student"."CourseID" = "Subjects"."CourseID" WHERE student."uID" = $1;`, [userID])
+  return rows;
 }
 
 // Route to fetch all records
@@ -67,6 +65,18 @@ app.get("/grades", async (req, res) => {
   } 
 });
 
+// Route to get all subjects of a userID
+app.get("/subjects", async (req, res) => {
+  try{
+    const data = await getSubjects(req);
+    res.send(data);
+  }catch(error){
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  } 
+});
+
+
 // Route to insert a new record
 app.post("/test", async (req, res) => {
   try {
@@ -79,6 +89,19 @@ app.post("/test", async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 });
+
+// Insert data
+async function insertRecord( firstname, lastname, middlename, age, email, password){
+  try {
+    const { rows } = await pool.query(
+      "INSERT INTO users (firstname, lastname, middlename, age, email, password) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+      [ firstname, lastname, middlename, age, email, password]
+    );
+    return rows[0]; 
+  } catch (error) {
+    throw new Error("Database insert error: " + error.message);
+  }
+};
 
 
 const PORT = process.env.PORT || 5000;
