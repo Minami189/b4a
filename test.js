@@ -28,11 +28,11 @@ async function getAccount(req){
 
 // Get grades of a student
 async function getGrades(req){
-  const {userID} = req.query;
+  const {userID, year, semester} = req.query;
   const {rows} = await pool.query(`SELECT "Subjects"."Year", "Subjects"."Semester", "Subjects"."Code", "Subjects"."Description", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB"
   FROM "Grades" JOIN "Subjects" ON "Subjects"."id" = "Grades"."SubjectID" 
-  JOIN student ON student.id = "Grades"."studentID" WHERE student."uID" = $1`, [userID])
-  return rows[0];
+  JOIN student ON student.id = "Grades"."studentID" WHERE student."uID" = $1 AND "Subjects"."Year" = $2 AND "Subjects"."Semester" = $3`, [userID, year, semester])
+  return rows;
 }
 
 // Get subjects of a course
