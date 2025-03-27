@@ -29,7 +29,7 @@ async function getAccount(req){
 // Get grades of a student
 async function getGrades(req){
   const {userID, year, semester} = req.query;
-  const {rows} = await pool.query(`SELECT "Subjects"."Year", "Subjects"."Semester", "Subjects"."Code", "Subjects"."Description", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB"
+  const {rows} = await pool.query(`SELECT "Grades".id, "Subjects"."Year", "Subjects"."Semester", "Subjects"."Code", "Subjects"."Description", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB"
   FROM "Grades" JOIN "Subjects" ON "Subjects"."id" = "Grades"."SubjectID" 
   JOIN student ON student.id = "Grades"."studentID" WHERE student."uID" = $1 AND "Subjects"."Year" = $2 AND "Subjects"."Semester" = $3`, [userID, year, semester])
   return rows;
