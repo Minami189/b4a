@@ -153,6 +153,60 @@ async function assignTeacher(req){
   }
 };
 
+//Route to get all assigned students of a teacher
+app.get("/students", validateToken, async (req,res)=>{
+  try {
+    const data = await getStudents(req)
+    res.status(200).send(data);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+//Function to get all students
+async function getStudents(req){
+  const {teacherID, section, year, courseID} = req.query;
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT
+    "student"."id" AS studentid,
+    "student"."firstname",
+    "student"."middlename", 
+    "student"."lastname",
+    "student"."section",
+    "Subjects".id AS subjectid,
+    "Subjects"."Description" AS subject_name,
+    "Subjects"."Code" AS subject_code,
+    "Subjects"."Year",
+    "Subjects"."Semester"
+FROM public."Assignment"
+JOIN public."Subjects" 
+    ON "Assignment"."SubjectID" = "Subjects"."id"
+JOIN public."student" 
+    ON "student"."CourseID" = "Subjects"."CourseID"
+    AND "student"."year" = "Subjects"."Year"
+    AND "student"."section" = "Assignment"."Section"
+JOIN public."teacher"
+    ON "Assignment"."teacherID" = "teacher"."id"
+WHERE 
+    "Assignment"."teacherID" = $1 AND  
+    "student"."CourseID" = $2 AND
+    "student".year = $3 AND
+    "student".section = $4
+ORDER BY 
+    "Subjects"."Year" ASC,
+    "Subjects"."Semester" ASC,
+    "student"."section" ASC,
+    "student"."lastname" ASC,
+    "student"."firstname" ASC;`,
+      [teacherID, courseID, year, section]
+    );
+    return rows; 
+  } catch (error) {
+    throw new Error("Database insert error: " + error.message);
+  }
+}
+
 //For the dropdown
 app.get("/teachers", validateToken, async (req, res) => {
   try {
