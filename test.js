@@ -30,7 +30,7 @@ async function getAccount(req){
 // Get grades of a student
 async function getGrades(req){
   const {userID, year, semester, term} = req.query;
-  const {rows} = await pool.query(`SELECT "Grades".term, "Grades".id, "Subjects"."Year", "Subjects"."Semester", "Subjects"."Code", "Subjects"."Description", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB"
+  const {rows} = await pool.query(`SELECT "Grades".term, "Subjects".id, "Subjects"."Year", "Subjects"."Semester", "Subjects"."Code", "Subjects"."Description", "Grades"."Grade", "Subjects"."LEC", "Subjects"."LAB"
   FROM "Grades" JOIN "Subjects" ON "Subjects"."id" = "Grades"."SubjectID" 
   JOIN student ON student.id = "Grades"."studentID" 
   WHERE student."uID" = $1 AND "Subjects"."Year" = $2 AND "Subjects"."Semester" = $3 AND "Grades".term = $4`, [userID, year, semester, term])
@@ -97,7 +97,30 @@ app.post("/grades",validateToken, async (req, res) => {
   } 
 });
 
+//Route to get a grade 
+app.get("/grade",validateToken, async (req, res) => {
+  try{
+    const data = await getGrade(req);
+    res.send(data);
+  }catch(error){
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
+  } 
+});
 
+async function getGrade(req){
+  const {userID, subjectID} = req.query;
+  try {
+    const { rows } = await pool.query(
+      `SELECT "Grades"."Grade", "Grades".term FROM "Grades" JOIN student ON "Grades"."studentID" = student.id 
+      WHERE student."uID" = $1 AND "Grades"."SubjectID" = $2`,
+      [userID, subjectID]
+    );
+    return rows; 
+  } catch (error) {
+    throw new Error("Database insert error: " + error.message);
+  }
+};
 
 
 
