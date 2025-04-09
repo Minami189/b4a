@@ -6,6 +6,7 @@ const validateToken = require('./middleware.js');
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }))
 app.use(cors());
 
 const pool = new Pool({
@@ -49,7 +50,7 @@ async function insertGrades(req){
 async function getSubjects(req){
   const {userID} = req.query;
   const {rows} = await pool.query(`SELECT "Subjects"."Code", "Subjects"."Description", "Subjects"."Year", "Subjects"."Semester", "Subjects"."LEC", "Subjects"."LAB"
-FROM "Subjects" JOIN "student" ON "student"."CourseID" = "Subjects"."CourseID" WHERE student."uID" = $1 ORDER BY "Subjects"."id";`, [userID])
+  FROM "Subjects" JOIN "student" ON "student"."CourseID" = "Subjects"."CourseID" WHERE student."uID" = $1 ORDER BY "Subjects"."id";`, [userID])
   return rows;
 }
 
@@ -121,8 +122,6 @@ async function getGrade(req){
     throw new Error("Database insert error: " + error.message);
   }
 };
-
-
 
 //FUNCTIONS FOR ADMINISTRATOR
 
@@ -319,6 +318,24 @@ ORDER BY id;`, [courseID, year, semester]);
   }
 };
 
+//post req nalang para mas madali
+app.post('/profile', validateToken, async (req,res)=>{
+  try{
+    const data = await editProfile(req);
+    res.send(data);
+  }catch(error){
+    console.error("error: " + error);
+  }
+})
+
+async function editProfile(req){
+  const {firstname, middlename, lastname, bdate} = req.body;
+  const {userID} = req.query;
+  const result = await pool.query(`UPDATE "users" SET firstname = $1, middlename = $2, lastname = $3, birthdate = $4 WHERE id = $5`,
+  [firstname,middlename,lastname,bdate, userID]);
+  console.log(req.body)
+  return result
+}
 
 
 const PORT = process.env.PORT || 5000;
