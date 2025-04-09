@@ -41,8 +41,13 @@ async function getGrades(req){
 // Insert grades as a teacher to a student
 async function insertGrades(req){
   const {subjectID, teacherID, studentID, grade, term} = req.query;
-  const {rows} = await pool.query(`INSERT INTO "Grades"("SubjectID","studentID","teacherID","Grade", term) 
-    VALUES($1, $2, $3, $4, $5)`, [subjectID, studentID, teacherID, grade, term])
+  const {rows} = await pool.query(`INSERT INTO "Grades" ("SubjectID", "studentID", "teacherID", "Grade", term)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT ("SubjectID", "studentID", term) 
+    DO UPDATE SET 
+    "Grade" = COALESCE(EXCLUDED."Grade", "Grades"."Grade"),
+    "teacherID" = EXCLUDED."teacherID"
+    RETURNING *;`, [subjectID, studentID, teacherID, grade, term])
   return rows;
 }
 
@@ -337,6 +342,106 @@ async function editProfile(req){
   return result
 }
 
+app.get('/tsubs', validateToken, async (req,res)=>{
+  try{
+    const result = await getTSubs(req);
+    res.send(result);
+  }catch(error){
+    res.send("error:" + error);
+  }
+})
+
+async function getTSubs(req){
+  const {userID} = req.query
+  try{
+    const {rows} = await pool.query(`SELECT DISTINCT "Subjects"."Description", teacher.id AS tID, "Subjects".id, "Subjects"."Code", "Subjects"."Year" FROM "Assignment" 
+    JOIN "Subjects" ON "Assignment"."SubjectID" = "Subjects".id
+    JOIN teacher ON teacher.id = "Assignment"."teacherID"
+    JOIN "users" ON "users".id = teacher."uID" 
+    WHERE "teacher"."uID" = $1 
+    ORDER BY "Subjects".id;`, [userID])
+    return rows;
+  }catch(error){
+    console.error(error);
+  }
+} 
+
+
+app.get('/tsections', validateToken, async (req,res)=>{
+  try{
+    const result = await getTSections(req);
+    res.send(result);
+  }catch(error){
+    res.send("error:" + error);
+  }
+})
+
+async function getTSections(req){
+  const {userID, subjectCode} = req.query
+  try{
+    const {rows} = await pool.query(`SELECT DISTINCT ON ("Course".id,"Course"."courseCode","Assignment"."Year","Assignment"."Section","Subjects"."Code")
+    "Assignment".id AS "aID","Course".id,"Course"."courseCode","Assignment"."Year","Assignment"."Section","Subjects"."Code"FROM "Assignment" 
+    JOIN "Course" ON "Course".id = "Assignment"."CourseID" 
+    JOIN "Subjects" ON "Subjects".id = "Assignment"."SubjectID"
+    JOIN teacher ON teacher.id = "Assignment"."teacherID" 
+    JOIN "users" ON "users".id = teacher."uID"
+    WHERE "users".id = $1 AND "Subjects"."Code" = $2
+    ORDER BY "Course".id, "Course"."courseCode", "Assignment"."Year", "Assignment"."Section", "Subjects"."Code", "Assignment".id`,
+    [userID, subjectCode]);
+    return rows;
+  }catch(error){
+    console.error(error)
+  }
+} 
+
+app.get('/tstudents', validateToken, async (req,res)=>{
+  try{
+    const result = await getTStudents(req);
+    res.send(result);
+  }catch(error){
+    res.send("error:" + error);
+  }
+})
+
+async function getTStudents(req){
+  const {aID} = req.query
+  try{
+    const {rows} = await pool.query(`SELECT DISTINCT student.id AS studID, "Subjects".id As subID, "Subjects"."Code", "Course"."courseCode", "Subjects"."Year", "Assignment"."Section", "student".firstname, "student".middlename, "student".lastname FROM "Subjects"
+    JOIN "Course" ON "Course".id = "Subjects"."CourseID"JOIN "Assignment" ON "Assignment"."SubjectID" = "Subjects".id
+    JOIN "student" ON "student"."section" = "Assignment"."Section" And student.year = "Assignment"."Year" AND student."CourseID" = "Course".id JOIN "teacher" On teacher.id = "Assignment"."teacherID"
+    JOIN "users" ON users.id = teacher."uID"
+    WHERE "Assignment".id = $1
+    ORDER BY "Subjects"."Year", "Assignment"."Section", student.lastname`,[aID])
+    return rows;
+  }catch(error){
+    console.error(error) 
+  }
+} 
+
+app.get('/tsgrades', validateToken, async (req,res)=>{
+  try{
+    const result = await getTSGrades(req);
+    res.send(result);
+  }catch(error){
+    res.send(error);
+  }
+})
+
+async function getTSGrades(req){
+  const {subjectID,section,courseCode,year} = req.query;
+  try{
+    const {rows} = await pool.query(`SELECT "Grades"."studentID", "Grades"."Grade", "Grades".term FROM "Grades" 
+    JOIN student ON student.id = "Grades"."studentID" JOIN "Course" ON "Course".id = student."CourseID"
+    WHERE "SubjectID" = $1
+    AND student.section = $2
+    AND "Course"."courseCode" = $3
+    AND student.year = $4`,
+    [subjectID, section, courseCode, year])
+    return rows;
+  }catch(error){
+    console.error(error);
+  }
+} 
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
