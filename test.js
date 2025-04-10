@@ -443,6 +443,63 @@ async function getTSGrades(req){
   }
 } 
 
+app.get('/password', validateToken, async (req,res)=>{
+  try{
+    const result = await changePassword(req);
+    res.send(result);
+  }catch(error){
+    res.send(error);
+  }
+})
+
+async function changePassword(req){
+  const {password, userID} = req.query;
+  try{
+    const result = pool.query(`UPDATE "users" SET password = $1 where id = $2`, [password,userID])
+    return result;
+  }catch(error){
+    console.error(error);
+  }
+} 
+
+app.get('/notif', validateToken, async (req,res)=>{
+  try{
+    const result = await getNotifs(req);
+    res.send(result);
+  }catch(error){
+    res.send(error);
+  }
+})
+
+async function getNotifs(req){
+  const {userID} = req.query;
+  try{
+    const {rows} = await pool.query(`SELECT * FROM notifications WHERE "userID" = $1`, [userID])
+    return rows;
+  }catch(error){
+    console.error(error);
+  }
+} 
+
+app.get('/deletenotif', validateToken, async (req,res)=>{
+  try{
+    const result = await deleteNotif(req);
+    res.send(result);
+  }catch(error){
+    res.send(error);
+  }
+})
+
+async function deleteNotif(req){
+  const {notifID} = req.query;
+  try{
+    const {rows} = await pool.query(`DELETE FROM notifications WHERE id = $1`, [notifID])
+    return rows;
+  }catch(error){
+    console.error(error);
+  }
+} 
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
